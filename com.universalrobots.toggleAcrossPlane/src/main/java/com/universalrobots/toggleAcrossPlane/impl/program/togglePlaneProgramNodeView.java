@@ -39,8 +39,8 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 	
 	public static final int indentPX = 60;
 	public static final Dimension TEXT_FIELD_DIMENSION = new Dimension(250, 30);
-//	private static final String BEFORE_START_WARNING = "<html><b><p style=\"color: red;\">This node is recommended to be placed in BeforeStart</p></b></html>";
-	private static final String BEFORE_START_WARNING = "<html><b>This node is recommended to be placed in BeforeStart</b></html>";
+	private static final String BEFORE_START_WARNING = "<html><p style=\"color: red;\"><b>This node MUST be placed in BeforeStart</b></p></html>";
+	private static final String BEFORE_START_WARNING2 = "<html>Thread errors will occur if this node is not in BeforeStart</html>";
 	private static final String EXPLANATION = "<html>While the program is running, the named variable will be set True when the robot's TCP is "
 			+ "on the positive side of the selected plane, and False when the TCP is on the negative side of that plane.</html>";
 	private static final String LINE1 = "<html>Name the variable to be toggled as the robot passes through the plane:</html>";
@@ -69,6 +69,7 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 	private ActionListener listener;
 	
 	private JLabel line3 = new JLabel();
+	private JLabel debug = new JLabel();
 	
 	public togglePlaneProgramNodeView(ViewAPIProvider apiProvider) {
 		this.apiProvider = apiProvider;
@@ -80,6 +81,7 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 		
 		Box content = Box.createVerticalBox();
 		content.add(createCenteredTextSection(BEFORE_START_WARNING));
+		content.add(createCenteredTextSection(BEFORE_START_WARNING2));
 		content.add(createVerticalSpacing());
 		content.add(createTextSection(EXPLANATION));
 		content.add(createVerticalDoubleSpacing());
@@ -96,6 +98,8 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 		content.add(createRadioButtons(provider));
 		content.add(createVerticalDoubleSpacing());
 		content.add(createTextSection(LINE4));
+		content.add(createVerticalHalfSpacing());
+//		content.add(debug);
 		panel.add(content);
 	}
 	
@@ -190,7 +194,9 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 			public void itemStateChanged(ItemEvent itemEvent) {
 				if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
 					if (itemEvent.getItem() instanceof Feature) {
-						provider.get().setFeature((Feature) itemEvent.getItem());
+						provider.get().setFeature((Feature) itemEvent.getItem(), itemEvent.getItem().equals(provider.get().getBaseFeature()));
+					} else if (itemEvent.getItem() instanceof String && !itemEvent.getItem().equals(NO_FEATURE)) {
+						provider.get().setFeature((Feature) featuresComboBox.getItemAt(featuresComboBox.getSelectedIndex()-1), true);
 					} else {
 						provider.get().removeFeature();
 					}
@@ -225,10 +231,21 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 			
 		for (Feature feature : features) {
 			model.addElement(feature);
+			if (!feature.equals(contribution.getBaseFeature())) {
+				model.addElement(feature.getName()+"_const");
+			}
 		}
 		Feature selectedFeature = contribution.getSelectedFeature();
 		if (selectedFeature != null) {
-			model.setSelectedItem(selectedFeature);
+			if (selectedFeature.equals(contribution.getBaseFeature())) {
+				model.setSelectedItem(selectedFeature);
+			}
+			else if (contribution.getIsConstant()) {
+				model.setSelectedItem(selectedFeature.getName()+"_const");
+			}
+			else {
+				model.setSelectedItem(selectedFeature);
+			}
 			featuresColor = WHITE;
 		}
 		else {
@@ -326,10 +343,8 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 		else if (plane.equals(YZ)) {
 			YZButton.setSelected(true);
 		}
-		if (contribution.isDefined()) {
-			contribution.setInstallationModel();
-		}
 		line3.setText(LINE3_1 + contribution.getSelectedFeatureName() + LINE3_2);
+		debug.setText(contribution.getDebug());
 	}
 
 }

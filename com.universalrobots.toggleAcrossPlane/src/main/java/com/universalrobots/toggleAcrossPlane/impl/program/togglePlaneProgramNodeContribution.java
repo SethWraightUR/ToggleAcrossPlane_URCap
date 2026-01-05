@@ -3,7 +3,6 @@ package com.universalrobots.toggleAcrossPlane.impl.program;
 import java.util.Collection;
 
 
-import com.universalrobots.toggleAcrossPlane.impl.installation.togglePlaneInstallationNodeContribution;
 import com.ur.urcap.api.contribution.ProgramNodeContribution;
 import com.ur.urcap.api.contribution.program.ProgramAPIProvider;
 import com.ur.urcap.api.domain.ProgramAPI;
@@ -36,13 +35,14 @@ public class togglePlaneProgramNodeContribution implements ProgramNodeContributi
 	private final DataModel model;
 	private final KeyboardInputFactory keyboardInputFactory;
 	private final InputValidationFactory validatorFactory;
-	private final togglePlaneInstallationNodeContribution installation;
 	
-	private static final String SELECTED_FEATURE = "selectedFeature";
-	private static final String VARIABLE_NAME = "variableName";
-	private static final String PLANE_NAME = "planeName";
+	private static final String SELECTED_FEATURE_KEY = "selectedFeature";
+	private static final String VARIABLE_NAME_KEY = "variableName";
+	private static final String PLANE_NAME_KEY = "planeName";
+	private static final String IS_CONSTANT_KEY = "isConstant";
 	private static final String DEFAULT_VAR = "Plane_Toggle";
-	private final String comment1 = "This node must be placed in BeforeStart.";
+	private static final String COMMENT = "This node must be placed in BeforeStart.";
+	private final String RAND = getRandomID();
 	
 	private Variable var;
 	
@@ -53,7 +53,6 @@ public class togglePlaneProgramNodeContribution implements ProgramNodeContributi
 		this.model = model;
 		this.keyboardInputFactory = apiProvider.getUserInterfaceAPI().getUserInteraction().getKeyboardInputFactory();
 		this.validatorFactory = apiProvider.getUserInterfaceAPI().getUserInteraction().getInputValidationFactory();
-		this.installation = apiProvider.getProgramAPI().getInstallationNode(togglePlaneInstallationNodeContribution.class);
 		lockChildSequence();
 		VariableFactory vf = programAPI.getVariableModel().getVariableFactory();
 		try {
@@ -61,8 +60,8 @@ public class togglePlaneProgramNodeContribution implements ProgramNodeContributi
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		model.set(VARIABLE_NAME, var);
-		model.set(PLANE_NAME, "XY");
+		model.set(VARIABLE_NAME_KEY, var);
+		model.set(PLANE_NAME_KEY, "XY");
 		generateSubtree();
 	}
 	
@@ -82,12 +81,25 @@ public class togglePlaneProgramNodeContribution implements ProgramNodeContributi
 
 	@Override
 	public boolean isDefined() {
-		return (model.isSet(VARIABLE_NAME) && model.isSet(PLANE_NAME) && model.isSet(SELECTED_FEATURE));
+		return (model.isSet(VARIABLE_NAME_KEY) && model.isSet(PLANE_NAME_KEY) && model.isSet(SELECTED_FEATURE_KEY));
 	}
-
+	
 	@Override
 	public void generateScript(ScriptWriter writer) {
+		String threadName = "toggleThr" + RAND;
+		String threadHandle = "toggleHnd" + RAND;
+		writer.defineThread(threadName);
+		writer.whileTrue();
 		writer.writeChildren();
+		writer.sync();
+		writer.end();
+		writer.end();
+		writer.runThread(threadHandle, threadName+"()");
+	}
+	
+	private String getRandomID() {
+		long rand = System.nanoTime();
+		return String.valueOf(rand);
 	}
 	
 	public void generateSubtree() {
@@ -116,14 +128,13 @@ public class togglePlaneProgramNodeContribution implements ProgramNodeContributi
 		TreeNode root = programModel.getRootTreeNode(this);
 		try {
 			CommentNode comment = nf.createCommentNode();
-			comment.setComment(comment1);
+			comment.setComment(COMMENT);
 			root.addChild(comment);
 			
 			AssignmentNode assn = nf.createAssignmentNode();
 			ExpressionAssignmentNodeConfig assncf;
 			if (isDefined()) {
 				assncf = assn.getConfigFactory().createExpressionConfig(getVar(), createFunctionExpression());
-				
 				assn.setConfig(assncf);
 				root.addChild(assn);
 			}
@@ -150,32 +161,47 @@ public class togglePlaneProgramNodeContribution implements ProgramNodeContributi
 	}
 	
 	public Feature getSelectedFeature() {
-		return model.get(SELECTED_FEATURE, (Feature)null);
+		return model.get(SELECTED_FEATURE_KEY, (Feature)null);
 	}
 	
 	public String getSelectedFeatureName() {
 		if (getSelectedFeature() == null) {
 			return "your selected Feature"; }
 		else {
-			return getSelectedFeature().getName(); }
+			return getSelectedFeature().getName();
+		}
 	}
 	
-	public void setFeature(final Feature feature) {
+	public String getSanitizedFeatureName() {
+		String sanitizedFeature = getSelectedFeatureName();
+		if (sanitizedFeature.equals("Base")) {
+			sanitizedFeature = "p[0.0,0.0,0.0,0.0,0.0,0.0]";
+		}
+		return sanitizedFeature;
+	}
+	
+	public void setFeature(final Feature feature, Boolean isConstant) {
 		programAPI.getUndoRedoManager().recordChanges(new UndoableChanges() {
 			@Override
 			public void executeChanges() {
-				model.set(SELECTED_FEATURE, feature);
+				model.set(SELECTED_FEATURE_KEY, feature);
+				model.set(IS_CONSTANT_KEY, isConstant);
 				view.updateView(togglePlaneProgramNodeContribution.this);
 				generateSubtree();
 			}
 		});
 	}
-
+	
+	public boolean getIsConstant() {
+		return model.get(IS_CONSTANT_KEY, false);
+	}
+	
 	public void removeFeature() {
 		programAPI.getUndoRedoManager().recordChanges(new UndoableChanges() {
 			@Override
 			public void executeChanges() {
-				model.remove(SELECTED_FEATURE);
+				model.remove(SELECTED_FEATURE_KEY);
+				model.remove(IS_CONSTANT_KEY);
 				view.updateView(togglePlaneProgramNodeContribution.this);
 				generateSubtree();
 			}
@@ -193,10 +219,10 @@ public class togglePlaneProgramNodeContribution implements ProgramNodeContributi
 		programAPI.getUndoRedoManager().recordChanges(new UndoableChanges() {
 			@Override
 			public void executeChanges() {
-				model.remove(VARIABLE_NAME);
+				model.remove(VARIABLE_NAME_KEY);
 				clearSubtree();
 				createVariable(name);
-				model.set(VARIABLE_NAME, var);
+				model.set(VARIABLE_NAME_KEY, var);
 				view.updateView(togglePlaneProgramNodeContribution.this);
 				createSubtree();
 			}
@@ -219,7 +245,13 @@ public class togglePlaneProgramNodeContribution implements ProgramNodeContributi
 	public Expression createFunctionExpression() {
 		ExpressionBuilder builder = apiProvider.getProgramAPI().getValueFactoryProvider().createExpressionBuilder();
 		try {
-			return builder.append("is_tcp_postive_of_plane(" + getSelectedFeatureName() + ", \"" + getPlane() + "\")").build();
+			if (getIsConstant()) {
+				return builder.append("is_tcp_postive_of_plane(").appendFeature(getSelectedFeature()).append(", \"" + getPlane() + "\")").build();
+			}
+			else {
+				return builder.append("is_tcp_postive_of_plane(" + getSanitizedFeatureName() + ", \"" + getPlane() + "\")").build();
+			}
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
@@ -241,21 +273,21 @@ public class togglePlaneProgramNodeContribution implements ProgramNodeContributi
 	}
 	
 	public Variable getVar() {
-		return model.get(VARIABLE_NAME, var);
+		return model.get(VARIABLE_NAME_KEY, var);
 	}
 	
 	public void setPlane(String plane) {
 		programAPI.getUndoRedoManager().recordChanges(new UndoableChanges() {
 			@Override
 			public void executeChanges() {
-				model.set(PLANE_NAME, plane);
+				model.set(PLANE_NAME_KEY, plane);
 				generateSubtree();
 			}
 		});
 	}
 	
 	public String getPlane() {
-		return model.get(PLANE_NAME, "XY");
+		return model.get(PLANE_NAME_KEY, "XY");
 	}
 	
 	public KeyboardTextInput getKeyboardForTextField() {
@@ -269,36 +301,37 @@ public class togglePlaneProgramNodeContribution implements ProgramNodeContributi
 		return new KeyboardInputCallback<String>() {
 			@Override
 			public void onOk(String value) {
-				if (!value.equals(getVarName())) {
-					setVar(value);
+				String sanValue = replaceSpaces(value);
+				if (!sanValue.equals(getVarName())) {
+					setVar(sanValue);
 				}
 			}
 		};
 	}
-
-	public void setInstallationModel() {
-		String[] entry = {getVarName(), getSelectedFeatureName(), getPlane()};
-		installation.setEntry(entry);
+	
+	private String replaceSpaces(String value) {
+		return value.replace(" ", "_");
 	}
 	
 	public String getDebug() {
 		String s = " ";
 		String varName;
 		try {
-			varName = model.get(VARIABLE_NAME, (Variable)null).getDisplayName();
+			varName = model.get(VARIABLE_NAME_KEY, (Variable)null).getDisplayName();
 		}
 		catch (Exception e) {
 			varName = "Variable undefined";
 		}
 		String feat;
 		try {
-			feat = model.get(SELECTED_FEATURE, (Feature)null).getName();
+			feat = model.get(SELECTED_FEATURE_KEY, (Feature)null).getName();
 		}
 		catch (Exception e) {
 			feat = "Feature undefined";
 		}
 		
-		String pln = model.get(PLANE_NAME, "Plane undefined");
+		String pln = model.get(PLANE_NAME_KEY, "Plane undefined");
 		return varName+s+feat+s+pln;
 	}
+	
 }

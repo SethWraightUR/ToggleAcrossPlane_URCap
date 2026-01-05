@@ -1,7 +1,5 @@
 package com.universalrobots.toggleAcrossPlane.impl.installation;
 
-import java.util.Set;
-
 import com.ur.urcap.api.contribution.InstallationNodeContribution;
 import com.ur.urcap.api.contribution.installation.InstallationAPIProvider;
 import com.ur.urcap.api.domain.InstallationAPI;
@@ -10,6 +8,7 @@ import com.ur.urcap.api.domain.script.ScriptWriter;
 
 public class togglePlaneInstallationNodeContribution implements InstallationNodeContribution {
 
+	@SuppressWarnings("unused")
 	private final DataModel model;
 	@SuppressWarnings("unused")
 	private final togglePlaneInstallationNodeView view;
@@ -22,6 +21,7 @@ public class togglePlaneInstallationNodeContribution implements InstallationNode
 	public static final String CURR = "currPosTransLocal";
 	public static final String THREAD_NAME = "toggle_plane_urcap_thread";
 	public static final String THREAD_HANDLE = "toggle_plane_urcap_thread_handle";
+	public static final String[] planes = {"XY", "XZ", "YZ"};
 	
 	public togglePlaneInstallationNodeContribution(InstallationAPIProvider apiProvider, DataModel model, togglePlaneInstallationNodeView view) {
 		this.model = model;
@@ -55,31 +55,8 @@ public class togglePlaneInstallationNodeContribution implements InstallationNode
 		writer.appendLine("    return currPosTransLocal[0]>=0");
 		writer.appendLine("  end");
 		writer.end();
-		
-		//generate thread
-		writer.defineThread(THREAD_NAME);
-		writer.whileTrue();
-		String[] n = null;
-		Set<String> keys = model.getKeys();
-		for (String key : keys) {
-			String[] entry = model.get(key, n);
-			writer.assign(entry[0], FUNCTION_NAME + "(" + entry[1] + ", \"" + entry[2] + "\")");
-		}
-		writer.sync();
-		writer.end();
-		writer.end();
-		
-		writer.runThread(THREAD_HANDLE, THREAD_NAME+"()");
 	}
 
-	public void setEntry(String[] entry) {
-		model.set(entry[0], entry);
-	}
-	
-	public void removeEntry(String variable) {
-		model.remove(variable);
-	}
-	
 	public String getFunctionReadout() {
 		return FUNCTION_NAME + "(" + LT + ARGUMENT_NAMES[0] + GT + ", " + LT + ARGUMENT_NAMES[1] + GT + ")";
 	}
@@ -87,5 +64,4 @@ public class togglePlaneInstallationNodeContribution implements InstallationNode
 	public String getFunctionDef() {
 		return FUNCTION_NAME + "(" + ARGUMENT_NAMES[0] + ", " + ARGUMENT_NAMES[1] + ")";
 	}
-	
 }
