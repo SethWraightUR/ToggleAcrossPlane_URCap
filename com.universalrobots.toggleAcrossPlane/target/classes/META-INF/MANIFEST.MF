@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1767639573321
+Bnd-LastModified: 1767716628455
 Build-Jdk-Spec: 1.8
 Bundle-Activator: com.universalrobots.toggleAcrossPlane.impl.Activator
 Bundle-Category: URCap
@@ -11,7 +11,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: toggleAcrossPlane
 Bundle-SymbolicName: com.universalrobots.toggleAcrossPlane
 Bundle-Vendor: Universal Robots
-Bundle-Version: 1.0.0
+Bundle-Version: 1.1.0
 Created-By: Apache Maven Bundle Plugin 5.1.9
 Import-Package: com.ur.urcap.api.contribution;version="[1.9,2)",com.ur.u
  rcap.api.contribution.installation;version="[1.8,2)",com.ur.urcap.api.c
@@ -31,7 +31,8 @@ Import-Package: com.ur.urcap.api.contribution;version="[1.9,2)",com.ur.u
  ur.urcap.api.domain.userinteraction.keyboard;version="[1.8,2)",com.ur.u
  rcap.api.domain.value;version="[1.10,2)",com.ur.urcap.api.domain.value.
  expression;version="[1.8,2)",com.ur.urcap.api.domain.variable;version="
- [1.8,2)",javax.swing,org.osgi.framework;version="[1.6,2)"
+ [1.8,2)",javax.swing,javax.swing.border,org.osgi.framework;version="[1.
+ 6,2)"
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
 Tool: Bnd-6.3.1.202206071316
 URCapCompatibility-CB3: false

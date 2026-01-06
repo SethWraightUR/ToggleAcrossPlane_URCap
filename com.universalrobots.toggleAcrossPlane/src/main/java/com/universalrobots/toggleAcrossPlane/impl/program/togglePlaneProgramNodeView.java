@@ -3,6 +3,7 @@ package com.universalrobots.toggleAcrossPlane.impl.program;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -19,12 +20,14 @@ import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListCellRenderer;
+import javax.swing.ImageIcon;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
 
 import com.ur.urcap.api.contribution.ContributionProvider;
 import com.ur.urcap.api.contribution.ViewAPIProvider;
@@ -40,9 +43,9 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 	public static final int indentPX = 60;
 	public static final Dimension TEXT_FIELD_DIMENSION = new Dimension(250, 30);
 	private static final String BEFORE_START_WARNING = "<html><p style=\"color: red;\"><b>This node MUST be placed in BeforeStart</b></p></html>";
-	private static final String BEFORE_START_WARNING2 = "<html>Thread errors will occur if this node is not in BeforeStart</html>";
+	private static final String BEFORE_START_WARNING2 = "<html>Thread errors <b>will</b> occur if this node is placed anywhere else</html>";
 	private static final String EXPLANATION = "<html>While the program is running, the named variable will be set True when the robot's TCP is "
-			+ "on the positive side of the selected plane, and False when the TCP is on the negative side of that plane.</html>";
+			+ "on the positive side of the selected plane, and set False when the TCP is on the negative side of that plane.</html>";
 	private static final String LINE1 = "<html>Name the variable to be toggled as the robot passes through the plane:</html>";
 	private static final String LINE2 = "<html>Select the feature to toggle relative to:</html>";
 	private static final String LINE3_1 = "<html>Select the plane of ";
@@ -67,9 +70,13 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 	private JRadioButton YZButton = new JRadioButton(YZ);
 	private ButtonGroup radioButtons = new ButtonGroup();
 	private ActionListener listener;
+	private ImageIcon imgXY = new ImageIcon(getClass().getResource("/images/XY.png"));
+	private ImageIcon imgXZ = new ImageIcon(getClass().getResource("/images/XZ.png"));
+	private ImageIcon imgYZ = new ImageIcon(getClass().getResource("/images/YZ.png"));
 	
 	private JLabel line3 = new JLabel();
 	private JLabel debug = new JLabel();
+	private JLabel image = new JLabel(imgXY);
 	
 	public togglePlaneProgramNodeView(ViewAPIProvider apiProvider) {
 		this.apiProvider = apiProvider;
@@ -82,23 +89,20 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 		Box content = Box.createVerticalBox();
 		content.add(createCenteredTextSection(BEFORE_START_WARNING));
 		content.add(createCenteredTextSection(BEFORE_START_WARNING2));
-		content.add(createVerticalSpacing());
-		content.add(createTextSection(EXPLANATION));
+		
 		content.add(createVerticalDoubleSpacing());
 		content.add(createTextSection(LINE1));
 		content.add(createVerticalHalfSpacing());
-		content.add(createNameField(provider));
-		content.add(createVerticalDoubleSpacing());
-		content.add(createTextSection(LINE2));
-		content.add(createVerticalHalfSpacing());
-		content.add(createFeaturesComboBox(provider));
+		content.add(createMidSection(provider));
 		content.add(createVerticalDoubleSpacing());
 		content.add(createTextSection(line3));
 		content.add(createVerticalHalfSpacing());
 		content.add(createRadioButtons(provider));
 		content.add(createVerticalDoubleSpacing());
+		content.add(createTextSection(EXPLANATION));
+		content.add(createVerticalSpacing());
 		content.add(createTextSection(LINE4));
-		content.add(createVerticalHalfSpacing());
+//		content.add(createVerticalHalfSpacing());
 //		content.add(debug);
 		panel.add(content);
 	}
@@ -208,7 +212,9 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 		    @Override
 		    public Component getListCellRendererComponent(JList<?> list, Object value, 
 		            int index, boolean isSelected, boolean cellHasFocus) {
-		        Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+		        JLabel c = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+		        
+		        c.setBorder(new EmptyBorder(5, 5, 5, 0)); 
 		        
 		        // index == -1 indicates the "selected item" box (not an item in the list)
 		        if (index == -1) {
@@ -219,7 +225,6 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 		});
 		comboBox.add(createHorizontalSpacingIndent());
 		comboBox.add(featuresComboBox);
-		comboBox.add(createHorizontalGlue());
 		return comboBox;
 	}
 			
@@ -288,7 +293,6 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 		});
 		inputBox.add(createHorizontalSpacingIndent());
 		inputBox.add(nameField);
-		inputBox.add(createHorizontalGlue());
 		return inputBox;
 	}
 	
@@ -329,6 +333,35 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 		};
 	}
 	
+	private Box createMidSection(ContributionProvider<togglePlaneProgramNodeContribution> provider) {
+		Box section = Box.createHorizontalBox();
+		section.setAlignmentX(Box.LEFT_ALIGNMENT);
+		section.add(createMidLeftSection(provider));
+		section.add(createImageSection());
+		section.add(createHorizontalGlue());
+		return section;
+	}
+	
+	private Box createImageSection() {
+		Box section = Box.createHorizontalBox();
+		section.add(image);
+		section.add(createHorizontalGlue());
+		section.add(createHorizontalSpacingIndent());
+		section.setAlignmentX(Box.LEFT_ALIGNMENT);
+		return section;
+	}
+	
+	private Box createMidLeftSection(ContributionProvider<togglePlaneProgramNodeContribution> provider) {
+		Box content = Box.createVerticalBox();
+		content.setAlignmentX(Box.LEFT_ALIGNMENT);
+		content.add(createNameField(provider));
+		content.add(createVerticalDoubleSpacing());
+		content.add(createTextSection(LINE2));
+		content.add(createVerticalHalfSpacing());
+		content.add(createFeaturesComboBox(provider));
+		return content;
+	}
+	
 	public void updateView(togglePlaneProgramNodeContribution contribution) {
 		updateFeaturesComboBox(contribution);
 		String varName = contribution.getVarName();
@@ -336,12 +369,15 @@ public class togglePlaneProgramNodeView implements SwingProgramNodeView<togglePl
 		String plane = contribution.getPlane();
 		if (plane.equals(XY)) {
 			XYButton.setSelected(true);
+			image.setIcon(imgXY);
 		}
 		else if (plane.equals(XZ)) {
 			XZButton.setSelected(true);
+			image.setIcon(imgXZ);
 		}
 		else if (plane.equals(YZ)) {
 			YZButton.setSelected(true);
+			image.setIcon(imgYZ);
 		}
 		line3.setText(LINE3_1 + contribution.getSelectedFeatureName() + LINE3_2);
 		debug.setText(contribution.getDebug());
